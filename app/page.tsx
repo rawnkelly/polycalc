@@ -9,7 +9,6 @@ import {
   formatPercent,
   formatPercentFromFraction,
   formatSignedCents,
-  formatSignedCurrencyFromCents,
   type FeeMode,
   type Inputs,
   type PricingMode,
@@ -83,8 +82,7 @@ function serializeInputsToUrl(inputs: Inputs): string {
   const params = new URLSearchParams();
 
   for (const key of INPUT_KEYS) {
-    const value = String(inputs[key]);
-    params.set(key, value);
+    params.set(key, String(inputs[key]));
   }
 
   return params.toString();
@@ -117,8 +115,8 @@ function DataTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, index) => (
-            <tr key={`${row[0]}-${index}`}>
+          {rows.map((row, rowIndex) => (
+            <tr key={`${row[0]}-${rowIndex}`}>
               {row.map((cell, cellIndex) => (
                 <td key={`${cell}-${cellIndex}`}>{cell}</td>
               ))}
@@ -127,6 +125,83 @@ function DataTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {children}
+      </select>
+    </label>
+  );
+}
+
+function InputField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <input inputMode="decimal" value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
+    </label>
+  );
+}
+
+function InfoChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="info-chip">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function SectionFrame({
+  eyebrow,
+  title,
+  description,
+  children,
+  actions,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <section className="section-frame panel-surface">
+      <div className="section-head">
+        <div>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2>{title}</h2>
+          {description ? <p className="section-copy">{description}</p> : null}
+        </div>
+        {actions ? <div className="section-actions">{actions}</div> : null}
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -164,9 +239,10 @@ function ResultCard({
   pricingMode: PricingMode;
 }) {
   const verdict = getVerdict(side, bestSide, recommendation);
+  const highlighted = bestSide === side.side && recommendation !== 'pass';
 
   return (
-    <section className={`result-card ${bestSide === side.side && recommendation !== 'pass' ? 'result-card-best' : ''}`}>
+    <section className={`result-card panel-surface ${highlighted ? 'result-card-best' : ''}`}>
       <div className="result-card-header">
         <div>
           <p className="eyebrow">Outcome</p>
@@ -176,10 +252,10 @@ function ResultCard({
       </div>
 
       {!side.isAvailable ? (
-        <div className="empty-state">Enter a price for this side to run the math.</div>
+        <div className="empty-state">Enter a valid price for this side to run the full stack of EV, sizing, target-entry, and slippage math.</div>
       ) : (
-        <div className="stack-lg">
-          <div className="subpanel">
+        <div className="stack-xl">
+          <div className="subpanel surface-soft">
             <div className="subpanel-header">
               <h3>Core</h3>
             </div>
@@ -201,7 +277,7 @@ function ResultCard({
             </div>
           </div>
 
-          <div className="subpanel">
+          <div className="subpanel surface-soft">
             <div className="subpanel-header">
               <h3>Position sizing</h3>
             </div>
@@ -215,8 +291,8 @@ function ResultCard({
             </div>
           </div>
 
-          {pricingMode === 'quote' && (
-            <div className="subpanel">
+          {pricingMode === 'quote' ? (
+            <div className="subpanel surface-soft">
               <div className="subpanel-header">
                 <h3>Bid / ask / midpoint</h3>
               </div>
@@ -230,9 +306,9 @@ function ResultCard({
                 <MetricRow label="EV at midpoint" value={side.pricingReference.midpointEv !== null ? formatSignedCents(side.pricingReference.midpointEv, precision) : '--'} />
               </div>
             </div>
-          )}
+          ) : null}
 
-          <div className="subpanel">
+          <div className="subpanel surface-soft">
             <div className="subpanel-header">
               <h3>Target entry prices</h3>
             </div>
@@ -248,7 +324,7 @@ function ResultCard({
             />
           </div>
 
-          <div className="subpanel">
+          <div className="subpanel surface-soft">
             <div className="subpanel-header">
               <h3>Fair value ladder</h3>
             </div>
@@ -263,7 +339,7 @@ function ResultCard({
             />
           </div>
 
-          <div className="subpanel">
+          <div className="subpanel surface-soft">
             <div className="subpanel-header">
               <h3>Slippage panel</h3>
             </div>
@@ -304,8 +380,7 @@ export default function HomePage() {
     }
 
     const query = serializeInputsToUrl(inputs);
-    const nextUrl = `${window.location.pathname}?${query}`;
-    window.history.replaceState(null, '', nextUrl);
+    window.history.replaceState(null, '', `${window.location.pathname}?${query}`);
   }, [inputs]);
 
   const state = useMemo(() => calculate(inputs), [inputs]);
@@ -334,31 +409,39 @@ export default function HomePage() {
   return (
     <main className="page-shell">
       <div className="page-frame">
-        <header className="hero">
-          <div>
-            <p className="eyebrow">Open-source utility by Lurk</p>
-            <h1>PolyCalc</h1>
-            <p className="hero-copy">Price. Edge. EV. Kelly. Entry targets. Slippage. Pass.</p>
+        <div className="topbar panel-surface">
+          <div className="brand-lockup">
+            <div className="brand-mark" aria-hidden="true">
+              L
+            </div>
+            <div>
+              <p className="eyebrow">Open-source utility by Lurk</p>
+              <div className="brand-line">
+                <strong>PolyCalc</strong>
+                <span>Binary market pricing terminal</span>
+              </div>
+            </div>
           </div>
-          <div className="hero-actions">
+          <div className="topbar-actions">
             <Link className="secondary-button" href="https://github.com/Lurk-AI-INC/polycalc" target="_blank">
-              Contribute
+              GitHub
             </Link>
             <Link className="secondary-button" href="https://lurk-ai.com" target="_blank">
               Lurk
             </Link>
           </div>
-        </header>
+        </div>
 
-        <section className="panel input-panel">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">Inputs</p>
-              <h2>Advanced contract assumptions</h2>
-            </div>
-            <div className="header-controls">
-              <button className="secondary-button" type="button" onClick={copyShareLink}>
-                {copied ? 'Copied link' : 'Copy share link'}
+        <header className="hero panel-surface">
+          <div className="hero-copy-wrap">
+            <p className="eyebrow">Advanced binary contract math</p>
+            <h1>Price cleanly. Size rationally. Pass when the edge is fake.</h1>
+            <p className="hero-copy">
+              Premium-feeling decision support for YES, NO, target entry, reverse pricing, slippage, and sizing — without turning the screen into clown software.
+            </p>
+            <div className="hero-actions">
+              <button className="primary-button" type="button" onClick={copyShareLink}>
+                {copied ? 'Share link copied' : 'Copy share link'}
               </button>
               <button className="secondary-button" type="button" onClick={resetDefaults}>
                 Reset example
@@ -366,170 +449,157 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="stack-lg">
-            <div className="input-grid">
-              <label>
-                <span>Pricing mode</span>
-                <select value={inputs.pricingMode} onChange={(event) => updateField('pricingMode', event.target.value as PricingMode)}>
-                  <option value="single">Single price</option>
-                  <option value="quote">Bid / ask mode</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Fee mode</span>
-                <select value={inputs.feeMode} onChange={(event) => updateField('feeMode', event.target.value as FeeMode)}>
-                  <option value="no-fee">No fee</option>
-                  <option value="polymarket">Polymarket-style</option>
-                  <option value="kalshi">Kalshi-style</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Sizing mode</span>
-                <select value={inputs.sizingMode} onChange={(event) => updateField('sizingMode', event.target.value as SizingMode)}>
-                  <option value="full-kelly">Full Kelly</option>
-                  <option value="half-kelly">Half Kelly</option>
-                  <option value="quarter-kelly">Quarter Kelly</option>
-                  <option value="fixed-dollar">Fixed dollar size</option>
-                  <option value="fixed-max-loss">Fixed max loss</option>
-                  <option value="fixed-bankroll-risk">Fixed % bankroll risk</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Fair YES probability (%)</span>
-                <input inputMode="decimal" value={inputs.fairYesProbability} onChange={(event) => updateField('fairYesProbability', event.target.value)} />
-              </label>
-
-              <label>
-                <span>Bankroll ($)</span>
-                <input inputMode="decimal" value={inputs.bankroll} onChange={(event) => updateField('bankroll', event.target.value)} />
-              </label>
-
-              <label>
-                <span>Kelly cap (%)</span>
-                <input inputMode="decimal" value={inputs.kellyCapPercent} onChange={(event) => updateField('kellyCapPercent', event.target.value)} />
-              </label>
-
-              {inputs.pricingMode === 'single' ? (
-                <>
-                  <label>
-                    <span>YES buy price (¢)</span>
-                    <input inputMode="decimal" value={inputs.yesPrice} onChange={(event) => updateField('yesPrice', event.target.value)} />
-                  </label>
-                  <label>
-                    <span>NO buy price (¢)</span>
-                    <input inputMode="decimal" value={inputs.noPrice} onChange={(event) => updateField('noPrice', event.target.value)} />
-                  </label>
-                </>
-              ) : (
-                <>
-                  <label>
-                    <span>YES bid (¢)</span>
-                    <input inputMode="decimal" value={inputs.yesBid} onChange={(event) => updateField('yesBid', event.target.value)} />
-                  </label>
-                  <label>
-                    <span>YES ask (¢)</span>
-                    <input inputMode="decimal" value={inputs.yesAsk} onChange={(event) => updateField('yesAsk', event.target.value)} />
-                  </label>
-                  <label>
-                    <span>NO bid (¢)</span>
-                    <input inputMode="decimal" value={inputs.noBid} onChange={(event) => updateField('noBid', event.target.value)} />
-                  </label>
-                  <label>
-                    <span>NO ask (¢)</span>
-                    <input inputMode="decimal" value={inputs.noAsk} onChange={(event) => updateField('noAsk', event.target.value)} />
-                  </label>
-                </>
-              )}
-
-              <label>
-                <span>Custom fee (¢)</span>
-                <input inputMode="decimal" value={inputs.fee} onChange={(event) => updateField('fee', event.target.value)} />
-              </label>
-
-              <label>
-                <span>Fixed dollar size ($)</span>
-                <input inputMode="decimal" value={inputs.fixedDollarSize} onChange={(event) => updateField('fixedDollarSize', event.target.value)} />
-              </label>
-
-              <label>
-                <span>Fixed max loss ($)</span>
-                <input inputMode="decimal" value={inputs.fixedMaxLoss} onChange={(event) => updateField('fixedMaxLoss', event.target.value)} />
-              </label>
-
-              <label>
-                <span>Fixed bankroll risk (%)</span>
-                <input inputMode="decimal" value={inputs.fixedBankrollRiskPercent} onChange={(event) => updateField('fixedBankrollRiskPercent', event.target.value)} />
-              </label>
-
-              <label>
-                <span>Reverse calc target EV (¢)</span>
-                <input inputMode="decimal" value={inputs.reverseDesiredEv} onChange={(event) => updateField('reverseDesiredEv', event.target.value)} />
-              </label>
-
-              <label>
-                <span>Reverse calc target ROI (%)</span>
-                <input inputMode="decimal" value={inputs.reverseDesiredRoi} onChange={(event) => updateField('reverseDesiredRoi', event.target.value)} />
-              </label>
-            </div>
-
-            <div className="toolbar">
-              <div className="precision-group" role="group" aria-label="Precision">
-                <span className="precision-label">Precision</span>
-                <button type="button" className={inputs.precision === 2 ? 'precision-button active' : 'precision-button'} onClick={() => updateField('precision', 2)}>
-                  2 decimals
-                </button>
-                <button type="button" className={inputs.precision === 4 ? 'precision-button active' : 'precision-button'} onClick={() => updateField('precision', 4)}>
-                  4 decimals
-                </button>
-              </div>
-              <div className="toolbar-note">
-                Polymarket-style uses a 4% fee curve default. Kalshi-style uses the published taker curve rounded to the next cent for 1 contract.
-              </div>
-            </div>
-
-            {state.errors.length > 0 ? (
-              <div className="error-box" aria-live="polite">
-                {state.errors.map((error) => (
-                  <p key={error}>{error}</p>
-                ))}
-              </div>
-            ) : (
-              <div className="recommendation-strip" aria-live="polite">
-                <div>
-                  <span className="eyebrow">Recommendation</span>
-                  <div className="recommendation-main">{state.recommendationLabel}</div>
-                </div>
-                <div className="recommendation-meta">
-                  <span>Compare YES vs NO vs pass with one clear action.</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="panel reverse-panel">
-          <div className="subpanel-header">
-            <div>
-              <p className="eyebrow">Reverse calculator</p>
-              <h2>Highest price you can pay</h2>
-            </div>
-          </div>
-          {state.reverse ? (
-            <DataTable
-              headers={['Constraint', 'YES max', 'NO max']}
-              rows={[
-                ['Target EV', `${formatNumber(state.reverse.yesMaxForEv, inputs.precision)}¢`, `${formatNumber(state.reverse.noMaxForEv, inputs.precision)}¢`],
-                [`Target ROI ${formatPercent(state.reverse.targetRoiFraction * 100, inputs.precision)}`, `${formatNumber(state.reverse.yesMaxForRoi, inputs.precision)}¢`, `${formatNumber(state.reverse.noMaxForRoi, inputs.precision)}¢`],
-              ]}
+          <div className="hero-rail">
+            <InfoChip label="Recommendation" value={state.recommendationLabel} />
+            <InfoChip label="Pricing" value={inputs.pricingMode === 'quote' ? 'Bid / ask mode' : 'Single price'} />
+            <InfoChip
+              label="Fee mode"
+              value={
+                inputs.feeMode === 'no-fee'
+                  ? 'No fee'
+                  : inputs.feeMode === 'polymarket'
+                    ? 'Polymarket-style'
+                    : inputs.feeMode === 'kalshi'
+                      ? 'Kalshi-style'
+                      : 'Custom'
+              }
             />
-          ) : (
-            <div className="empty-state">Reverse calculator appears when inputs validate.</div>
-          )}
-        </section>
+            <InfoChip
+              label="Sizing"
+              value={
+                inputs.sizingMode === 'full-kelly'
+                  ? 'Full Kelly'
+                  : inputs.sizingMode === 'half-kelly'
+                    ? 'Half Kelly'
+                    : inputs.sizingMode === 'quarter-kelly'
+                      ? 'Quarter Kelly'
+                      : inputs.sizingMode === 'fixed-dollar'
+                        ? 'Fixed dollars'
+                        : inputs.sizingMode === 'fixed-max-loss'
+                          ? 'Fixed max loss'
+                          : 'Fixed bankroll risk'
+              }
+            />
+          </div>
+        </header>
+
+        {state.errors.length > 0 ? (
+          <div className="error-box" aria-live="polite">
+            {state.errors.map((error) => (
+              <p key={error}>{error}</p>
+            ))}
+          </div>
+        ) : (
+          <div className="recommendation-strip panel-surface" aria-live="polite">
+            <div>
+              <p className="eyebrow">Live recommendation</p>
+              <div className="recommendation-main">{state.recommendationLabel}</div>
+            </div>
+            <div className="recommendation-meta">
+              YES vs NO vs pass, with shareable state and venue-aware fee presets.
+            </div>
+          </div>
+        )}
+
+        <div className="controls-layout">
+          <SectionFrame
+            eyebrow="Configuration"
+            title="Market setup"
+            description="Set pricing mode, venue-style fees, bankroll context, and fair value assumptions."
+          >
+            <div className="control-grid control-grid-3">
+              <SelectField label="Pricing mode" value={inputs.pricingMode} onChange={(value) => updateField('pricingMode', value as PricingMode)}>
+                <option value="single">Single price</option>
+                <option value="quote">Bid / ask mode</option>
+              </SelectField>
+
+              <SelectField label="Fee mode" value={inputs.feeMode} onChange={(value) => updateField('feeMode', value as FeeMode)}>
+                <option value="no-fee">No fee</option>
+                <option value="polymarket">Polymarket-style</option>
+                <option value="kalshi">Kalshi-style</option>
+                <option value="custom">Custom</option>
+              </SelectField>
+
+              <SelectField label="Sizing mode" value={inputs.sizingMode} onChange={(value) => updateField('sizingMode', value as SizingMode)}>
+                <option value="full-kelly">Full Kelly</option>
+                <option value="half-kelly">Half Kelly</option>
+                <option value="quarter-kelly">Quarter Kelly</option>
+                <option value="fixed-dollar">Fixed dollar size</option>
+                <option value="fixed-max-loss">Fixed max loss</option>
+                <option value="fixed-bankroll-risk">Fixed % bankroll risk</option>
+              </SelectField>
+
+              <InputField label="Fair YES probability (%)" value={inputs.fairYesProbability} onChange={(value) => updateField('fairYesProbability', value)} />
+              <InputField label="Bankroll ($)" value={inputs.bankroll} onChange={(value) => updateField('bankroll', value)} />
+              <InputField label="Kelly cap (%)" value={inputs.kellyCapPercent} onChange={(value) => updateField('kellyCapPercent', value)} />
+              <InputField label="Custom fee (¢)" value={inputs.fee} onChange={(value) => updateField('fee', value)} />
+              <InputField label="Fixed dollar size ($)" value={inputs.fixedDollarSize} onChange={(value) => updateField('fixedDollarSize', value)} />
+              <InputField label="Fixed max loss ($)" value={inputs.fixedMaxLoss} onChange={(value) => updateField('fixedMaxLoss', value)} />
+              <InputField label="Fixed bankroll risk (%)" value={inputs.fixedBankrollRiskPercent} onChange={(value) => updateField('fixedBankrollRiskPercent', value)} />
+              <InputField label="Reverse target EV (¢)" value={inputs.reverseDesiredEv} onChange={(value) => updateField('reverseDesiredEv', value)} />
+              <InputField label="Reverse target ROI (%)" value={inputs.reverseDesiredRoi} onChange={(value) => updateField('reverseDesiredRoi', value)} />
+            </div>
+          </SectionFrame>
+
+          <div className="controls-stack">
+            <SectionFrame
+              eyebrow="Pricing"
+              title={inputs.pricingMode === 'quote' ? 'Bid / ask inputs' : 'Single-price entries'}
+              description={
+                inputs.pricingMode === 'quote'
+                  ? 'Use live bid / ask quotes and let the app judge fills with spread-aware references.'
+                  : 'Use direct entry prices when you already know the exact YES / NO fill you want to evaluate.'
+              }
+              actions={
+                <div className="precision-group" role="group" aria-label="Precision">
+                  <span className="precision-label">Precision</span>
+                  <button type="button" className={inputs.precision === 2 ? 'precision-button active' : 'precision-button'} onClick={() => updateField('precision', 2)}>
+                    2 decimals
+                  </button>
+                  <button type="button" className={inputs.precision === 4 ? 'precision-button active' : 'precision-button'} onClick={() => updateField('precision', 4)}>
+                    4 decimals
+                  </button>
+                </div>
+              }
+            >
+              {inputs.pricingMode === 'single' ? (
+                <div className="control-grid control-grid-2">
+                  <InputField label="YES buy price (¢)" value={inputs.yesPrice} onChange={(value) => updateField('yesPrice', value)} />
+                  <InputField label="NO buy price (¢)" value={inputs.noPrice} onChange={(value) => updateField('noPrice', value)} />
+                </div>
+              ) : (
+                <div className="control-grid control-grid-2">
+                  <InputField label="YES bid (¢)" value={inputs.yesBid} onChange={(value) => updateField('yesBid', value)} />
+                  <InputField label="YES ask (¢)" value={inputs.yesAsk} onChange={(value) => updateField('yesAsk', value)} />
+                  <InputField label="NO bid (¢)" value={inputs.noBid} onChange={(value) => updateField('noBid', value)} />
+                  <InputField label="NO ask (¢)" value={inputs.noAsk} onChange={(value) => updateField('noAsk', value)} />
+                </div>
+              )}
+            </SectionFrame>
+
+            <SectionFrame
+              eyebrow="Reverse calculator"
+              title="Highest price you can pay"
+              description="Work backward from target EV and target ROI to get a maximum acceptable entry on both sides."
+            >
+              {state.reverse ? (
+                <DataTable
+                  headers={['Constraint', 'YES max', 'NO max']}
+                  rows={[
+                    ['Target EV', `${formatNumber(state.reverse.yesMaxForEv, inputs.precision)}¢`, `${formatNumber(state.reverse.noMaxForEv, inputs.precision)}¢`],
+                    [
+                      `Target ROI ${formatPercent(state.reverse.targetRoiFraction * 100, inputs.precision)}`,
+                      `${formatNumber(state.reverse.yesMaxForRoi, inputs.precision)}¢`,
+                      `${formatNumber(state.reverse.noMaxForRoi, inputs.precision)}¢`,
+                    ],
+                  ]}
+                />
+              ) : (
+                <div className="empty-state">Reverse calculator appears once the current inputs validate.</div>
+              )}
+            </SectionFrame>
+          </div>
+        </div>
 
         <section className="results-grid">
           <ResultCard
@@ -548,11 +618,36 @@ export default function HomePage() {
           />
         </section>
 
-        <footer className="footer-note">
-          Generic binary contract math. User-supplied fair value. URL state is shareable.
+        <footer className="footer panel-surface">
+          <div className="footer-main">
+            <div>
+              <p className="eyebrow">PolyCalc</p>
+              <h2>Open-source binary market calculator by Lurk.</h2>
+              <p className="section-copy footer-copy">
+                Clean contract math, shareable state, venue-aware fee presets, and pass discipline — in a shell that no longer looks like a random admin panel wandered onto the page.
+              </p>
+            </div>
+            <div className="footer-links">
+              <Link href="https://github.com/Lurk-AI-INC/polycalc" target="_blank">
+                GitHub
+              </Link>
+              <Link href="https://lurk-ai.com" target="_blank">
+                Lurk
+              </Link>
+              <button className="footer-link-button" type="button" onClick={copyShareLink}>
+                {copied ? 'Copied' : 'Copy share link'}
+              </button>
+            </div>
+          </div>
+          <div className="footer-meta">
+            <span>Generic binary contract math.</span>
+            <span>User-supplied fair value.</span>
+            <span>URL state is shareable.</span>
+          </div>
         </footer>
       </div>
     </main>
   );
 }
 
+/* Suggested commit message: rework PolyCalc shell into a premium desktop/mobile UI with cleaner header, grouped controls, upgraded footer, and tighter visual rhythm */
