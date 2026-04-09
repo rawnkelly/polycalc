@@ -298,7 +298,7 @@ export default function HomePage() {
         </section>
 
         <footer className="footer-note">
-          Open source tool from <Link href="https://lurk-ai.com">Lurk</Link>. User-supplied fee assumptions.
+          Open source tool from<button className="lurk-cta" type="button" onClick={() => redirect('https://lurk-ai.com')}>Lurk</button>. User-supplied fee assumptions.
         </footer>
       </div>
     </main>
