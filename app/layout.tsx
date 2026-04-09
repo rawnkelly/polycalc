@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Binary Market Calculator',
+  title: 'PolyCalc (v0.1)',
   description: 'Price. Edge. EV. Kelly.',
 };
 
