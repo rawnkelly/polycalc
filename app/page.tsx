@@ -43,7 +43,7 @@ export default function HomePage() {
         <header className="hero panel-surface">
           <div className="hero-copy-wrap">
             <p className="eyebrow">Overview</p>
-            <h1>Your free tools</h1>
+            <h1>Four tools free.</h1>
             <p className="hero-copy">PolyCore merges advanced math, locally saved watchlists, a live monitor, and a CLI, for free.</p>
             <div className="hero-actions">
               <Link className="primary-button" href="/calculator">Open calculator</Link>
