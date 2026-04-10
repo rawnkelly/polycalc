@@ -77,7 +77,7 @@ export default function MonitorPage() {
   return (
     <main className="page-shell page-shell-monitor">
       <div className="page-frame">
-        <div className="topbar panel-surface"><div className="brand-lockup"><div className="brand-mark">P</div><div><p className="eyebrow">Open-source binary market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Monitor</strong><span>Live board mode with watchlist DNA</span></div></div></div><div className="topbar-actions">{nav.map((link) => <Link key={link.href} className="secondary-button" href={link.href}>{link.label}</Link>)}</div></div>
+        <div className="topbar panel-surface"><div className="brand-lockup"><div className="brand-mark">PC</div><div><p className="eyebrow">Open-source market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Monitor</strong><span>Live board mode with watchlist DNA</span></div></div></div><div className="topbar-actions">{nav.map((link) => <Link key={link.href} className="secondary-button" href={link.href}>{link.label}</Link>)}</div></div>
 
         <section className="monitor-hud panel-surface">
           <div className="monitor-hud-main">

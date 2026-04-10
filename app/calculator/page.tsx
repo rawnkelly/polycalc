@@ -85,7 +85,7 @@ export default function CalculatorPage() {
     <main className="page-shell">
       <div className="page-frame">
         <div className="topbar panel-surface">
-          <div className="brand-lockup"><div className="brand-mark">P</div><div><p className="eyebrow">Open-source binary market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Calculator</strong><span>Analyze a live binary contract</span></div></div></div>
+          <div className="brand-lockup"><div className="brand-mark">P</div><div><p className="eyebrow">Open-source market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Calculator</strong><span>Analyze a live binary contract</span></div></div></div>
           <div className="topbar-actions">{nav.map((link) => <Link key={link.href} className="secondary-button" href={link.href}>{link.label}</Link>)}</div>
         </div>
 

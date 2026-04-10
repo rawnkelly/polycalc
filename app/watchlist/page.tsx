@@ -119,7 +119,7 @@ export default function WatchlistPage() {
   return (
     <main className="page-shell">
       <div className="page-frame">
-        <div className="topbar panel-surface"><div className="brand-lockup"><div className="brand-mark">P</div><div><p className="eyebrow">Open-source binary market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Watchlist</strong><span>Track the markets that matter</span></div></div></div><div className="topbar-actions">{nav.map((link) => <Link key={link.href} className="secondary-button" href={link.href}>{link.label}</Link>)}</div></div>
+        <div className="topbar panel-surface"><div className="brand-lockup"><div className="brand-mark">P</div><div><p className="eyebrow">Open-source market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Watchlist</strong><span>Track the markets that matter</span></div></div></div><div className="topbar-actions">{nav.map((link) => <Link key={link.href} className="secondary-button" href={link.href}>{link.label}</Link>)}</div></div>
 
         <header className="hero panel-surface">
           <div className="hero-copy-wrap"><p className="eyebrow">Watchlist module</p><h1>Saved lists, live rows, instant calculator handoff.</h1><p className="hero-copy">Use named watchlists, import/export JSON, and jump any market straight into the calculator with quote fields already filled.</p></div>

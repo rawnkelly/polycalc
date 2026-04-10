@@ -1,6 +1,6 @@
 # PolyCore
 
-Open-source binary market toolkit by Lurk.
+Open-source market toolkit by Lurk.
 
 ## V2 in this repo
 
