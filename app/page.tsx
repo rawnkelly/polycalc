@@ -19,7 +19,7 @@ function Shell({ title, subtitle, children }: { title: string; subtitle: string;
       {children}
       <footer className="footer panel-surface">
         <div className="footer-main">
-          <div><p className="eyebrow">PolyCore</p><h2>Open-source market toolkit by Lurk.</h2><p className="section-copy footer-copy">Calculator, watchlist, monitor, and CLI in one polished repo.</p></div>
+          <div><p className="eyebrow">PolyCore</p><h2>Open-source market toolkit by Lurk.</h2><p className="section-copy footer-copy">Calculator, watchlist, monitor, and CLI, all in one.</p></div>
           <div className="footer-links">
             {nav.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
           </div>
