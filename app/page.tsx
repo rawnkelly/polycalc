@@ -124,7 +124,7 @@ export default function HomePage() {
           <div className="footer-main">
             <div>
               <p className="eyebrow">PolyCore</p>
-              <h2>Open-source binary market toolkit by Lurk.</h2>
+              <h2>Free market toolkit by Lurk.</h2>
               <p className="section-copy footer-copy">
                 One brand, one repo, one polished shell across calculator, watchlist, monitor, and CLI.
               </p>
