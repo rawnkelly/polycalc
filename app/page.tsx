@@ -38,12 +38,12 @@ const modules = [
 export default function HomePage() {
   return (
     <main className="page-shell">
-      <Shell title="PolyCore" subtitle="Analyze. Track. Monitor.">
+      <Shell title="PolyCore (v0.1)" subtitle="Analyze. Track. Monitor.">
         <header className="hero panel-surface">
           <div className="hero-copy-wrap">
-            <p className="eyebrow">One brand. One repo. Three surfaces.</p>
-            <h1>Binary market workflow, not random tools taped together.</h1>
-            <p className="hero-copy">PolyCore merges the advanced calculator with saved watchlists, a cleaner live monitor, and a CLI in the same repo.</p>
+            <p className="eyebrow">Overview</p>
+            <h1>Free market tools.</h1>
+            <p className="hero-copy">PolyCore merges advanced math, locally saved watchlists, a live monitor, plus a CLI if you're into that.</p>
             <div className="hero-actions">
               <Link className="primary-button" href="/calculator">Open calculator</Link>
               <Link className="secondary-button" href="/watchlist">Open watchlist</Link>
