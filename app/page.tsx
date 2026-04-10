@@ -53,7 +53,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="hero-rail">
-            <div className="info-chip"><span>Calculator</span><strong>Edge, EV, Kelly, target entry, reverse pricing.</strong></div>
+            <div className="info-chip"><span>Calculator</span><strong>Edge, EV, Kelly, target entry, and reverse pricing.</strong></div>
             <div className="info-chip"><span>Watchlist V2</span><strong>Saved local watchlists, import/export, filters, and calc handoff.</strong></div>
             <div className="info-chip"><span>Monitor V2</span><strong>Selection detail, pulse metrics, event logs, density, and live posture.</strong></div>
             <div className="info-chip"><span>Rules</span><strong>Saved conditions for entry, spread, status, countdown, and EV.</strong></div>
