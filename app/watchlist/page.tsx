@@ -2,328 +2,170 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  formatCents,
-  formatCompactNumber,
-  SAMPLE_MARKETS,
-  statusTone,
-  type NormalizedMarket,
-} from '@/lib/markets';
+import { SAMPLE_MARKETS, formatCents, formatCompactNumber, statusTone, type Market } from '@/lib/markets';
 
-type SortKey = 'status-close' | 'widest-spread' | 'last-price';
+type SavedWatchlist = {
+  id: string;
+  name: string;
+  tickers: string[];
+  fairYesDefault: string;
+  bankrollDefault: string;
+  refreshSeconds: number;
+};
 
-function buildCalculatorHref(market: NormalizedMarket, fairYes: string, bankroll: string) {
+const STORAGE_KEY = 'polycore.watchlists.v2';
+
+function defaultLists(): SavedWatchlist[] {
+  return [{ id: 'macro', name: 'Macro sample', tickers: SAMPLE_MARKETS.map((market) => market.ticker), fairYesDefault: '50', bankrollDefault: '1000', refreshSeconds: 15 }];
+}
+function calculatorHref(market: Market, fairYes: string, bankroll: string) {
   const params = new URLSearchParams({
-    pricingMode: 'quote',
-    yesBid: market.yesBidCents?.toString() ?? '',
-    yesAsk: market.yesAskCents?.toString() ?? '',
-    noBid: market.noBidCents?.toString() ?? '',
-    noAsk: market.noAskCents?.toString() ?? '',
-    fairYesProbability: fairYes,
-    bankroll,
-    feeMode: 'kalshi',
-    sizingMode: 'quarter-kelly',
+    fairYesProbability: fairYes, bankroll, feeMode: 'kalshi', sizingMode: 'quarter-kelly',
+    yesBid: String(market.yesBidCents ?? ''), yesAsk: String(market.yesAskCents ?? ''),
+    noBid: String(market.noBidCents ?? ''), noAsk: String(market.noAskCents ?? ''),
   });
-
   return `/calculator?${params.toString()}`;
 }
 
-function sortMarkets(markets: NormalizedMarket[], sortKey: SortKey): NormalizedMarket[] {
-  const next = [...markets];
-
-  if (sortKey === 'widest-spread') {
-    return next.sort((a, b) => (b.yesSpreadCents ?? -1) - (a.yesSpreadCents ?? -1));
-  }
-
-  if (sortKey === 'last-price') {
-    return next.sort((a, b) => (b.lastPriceCents ?? -1) - (a.lastPriceCents ?? -1));
-  }
-
-  return next.sort((a, b) => {
-    const aOpen = a.status === 'open' ? 0 : 1;
-    const bOpen = b.status === 'open' ? 0 : 1;
-    if (aOpen !== bOpen) {
-      return aOpen - bOpen;
-    }
-    return (new Date(a.closeTime ?? 0).getTime() || Number.MAX_SAFE_INTEGER) - (new Date(b.closeTime ?? 0).getTime() || Number.MAX_SAFE_INTEGER);
-  });
-}
-
 export default function WatchlistPage() {
-  const [tickerText, setTickerText] = useState('');
-  const [tickers, setTickers] = useState('');
-  const [refreshSeconds, setRefreshSeconds] = useState(15);
+  const nav = [{ href: '/', label: 'Overview' }, { href: '/calculator', label: 'Calculator' }, { href: '/watchlist', label: 'Watchlist' }, { href: '/monitor', label: 'Monitor' }];
+  const [saved, setSaved] = useState<SavedWatchlist[]>(defaultLists());
+  const [activeId, setActiveId] = useState('macro');
+  const [name, setName] = useState('Macro sample');
+  const [tickersText, setTickersText] = useState(SAMPLE_MARKETS.map((market) => market.ticker).join(', '));
   const [fairYes, setFairYes] = useState('50');
   const [bankroll, setBankroll] = useState('1000');
-  const [sortKey, setSortKey] = useState<SortKey>('status-close');
-  const [markets, setMarkets] = useState<NormalizedMarket[]>(SAMPLE_MARKETS);
+  const [refreshSeconds, setRefreshSeconds] = useState(15);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'paused'>('all');
+  const [sort, setSort] = useState<'close' | 'spread' | 'last'>('close');
+  const [markets, setMarkets] = useState<Market[]>(SAMPLE_MARKETS);
   const [isDemo, setIsDemo] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<string>('Sample mode');
   const [error, setError] = useState('');
+  const [importText, setImportText] = useState('');
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const nextTickers = params.get('tickers') ?? '';
-    const nextRefresh = Number(params.get('refresh') ?? '15');
-    const nextFair = params.get('fairYes') ?? '50';
-    const nextBankroll = params.get('bankroll') ?? '1000';
-    const nextSort = (params.get('sort') ?? 'status-close') as SortKey;
-
-    setTickerText(nextTickers);
-    setTickers(nextTickers);
-    if (Number.isFinite(nextRefresh) && nextRefresh >= 5) {
-      setRefreshSeconds(nextRefresh);
-    }
-    setFairYes(nextFair);
-    setBankroll(nextBankroll);
-    if (nextSort === 'status-close' || nextSort === 'widest-spread' || nextSort === 'last-price') {
-      setSortKey(nextSort);
-    }
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as SavedWatchlist[];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setSaved(parsed);
+        const first = parsed[0];
+        setActiveId(first.id); setName(first.name); setTickersText(first.tickers.join(', '));
+        setFairYes(first.fairYesDefault); setBankroll(first.bankrollDefault); setRefreshSeconds(first.refreshSeconds);
+      }
+    } catch {}
   }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams({
-      tickers,
-      refresh: String(refreshSeconds),
-      fairYes,
-      bankroll,
-      sort: sortKey,
-    });
-    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
-  }, [tickers, refreshSeconds, fairYes, bankroll, sortKey]);
+  useEffect(() => { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); }, [saved]);
 
   useEffect(() => {
     let cancelled = false;
-
     async function load() {
-      if (!tickers.trim()) {
-        setIsDemo(true);
-        setMarkets(SAMPLE_MARKETS);
-        setError('');
-        setLastUpdated('Sample mode');
-        return;
-      }
-
-      setIsLoading(true);
+      const tickers = tickersText.split(',').map((ticker) => ticker.trim()).filter(Boolean);
+      if (tickers.length === 0) { setMarkets(SAMPLE_MARKETS); setIsDemo(true); setError(''); return; }
       try {
-        const response = await fetch(`/api/kalshi/markets?tickers=${encodeURIComponent(tickers)}`, { cache: 'no-store' });
-        const payload = (await response.json()) as { markets?: NormalizedMarket[]; error?: string };
-
-        if (!response.ok) {
-          throw new Error(payload.error ?? 'Market request failed');
-        }
-
-        if (!cancelled) {
-          setMarkets(Array.isArray(payload.markets) ? payload.markets : []);
-          setError('');
-          setIsDemo(false);
-          setLastUpdated(new Date().toLocaleTimeString());
-        }
+        const response = await fetch(`/api/kalshi/markets?tickers=${encodeURIComponent(tickers.join(','))}`, { cache: 'no-store' });
+        const payload = await response.json() as { markets?: Market[]; error?: string };
+        if (!response.ok) throw new Error(payload.error ?? 'Request failed');
+        if (!cancelled) { setMarkets(Array.isArray(payload.markets) && payload.markets.length > 0 ? payload.markets : SAMPLE_MARKETS); setIsDemo(false); setError(''); }
       } catch (nextError) {
-        if (!cancelled) {
-          setError(nextError instanceof Error ? nextError.message : 'Unknown error');
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
+        if (!cancelled) { setError(nextError instanceof Error ? nextError.message : 'Unknown error'); setMarkets(SAMPLE_MARKETS); setIsDemo(true); }
       }
     }
-
     load();
-    const interval = window.setInterval(load, refreshSeconds * 1000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [tickers, refreshSeconds]);
+    const timer = window.setInterval(load, refreshSeconds * 1000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [tickersText, refreshSeconds]);
 
-  const sorted = useMemo(() => sortMarkets(markets, sortKey), [markets, sortKey]);
-  const selected = sorted[0] ?? null;
+  const filtered = useMemo(() => {
+    let next = markets.filter((market) => market.title.toLowerCase().includes(search.toLowerCase()) || market.ticker.toLowerCase().includes(search.toLowerCase()));
+    if (statusFilter !== 'all') next = next.filter((market) => market.status === statusFilter);
+    if (sort === 'spread') next = [...next].sort((a, b) => (b.yesSpreadCents ?? -1) - (a.yesSpreadCents ?? -1));
+    else if (sort === 'last') next = [...next].sort((a, b) => (b.lastPriceCents ?? -1) - (a.lastPriceCents ?? -1));
+    else next = [...next].sort((a, b) => new Date(a.closeTime ?? 0).getTime() - new Date(b.closeTime ?? 0).getTime());
+    return next;
+  }, [markets, search, statusFilter, sort]);
+
+  function saveCurrentWatchlist() {
+    const next: SavedWatchlist = {
+      id: activeId || String(Date.now()), name,
+      tickers: tickersText.split(',').map((ticker) => ticker.trim()).filter(Boolean),
+      fairYesDefault: fairYes, bankrollDefault: bankroll, refreshSeconds,
+    };
+    setSaved((current) => {
+      const index = current.findIndex((item) => item.id === next.id);
+      if (index === -1) return [next, ...current];
+      const copy = [...current]; copy[index] = next; return copy;
+    });
+    setActiveId(next.id);
+  }
+  function loadSaved(item: SavedWatchlist) {
+    setActiveId(item.id); setName(item.name); setTickersText(item.tickers.join(', ')); setFairYes(item.fairYesDefault); setBankroll(item.bankrollDefault); setRefreshSeconds(item.refreshSeconds);
+  }
+  function exportCurrent() {
+    const payload = JSON.stringify({ id: activeId || String(Date.now()), name, tickers: tickersText.split(',').map((ticker) => ticker.trim()).filter(Boolean), fairYesDefault: fairYes, bankrollDefault: bankroll, refreshSeconds }, null, 2);
+    navigator.clipboard.writeText(payload);
+  }
+  function importWatchlist() {
+    try {
+      const parsed = JSON.parse(importText) as SavedWatchlist;
+      loadSaved(parsed);
+    } catch { setError('Import JSON is invalid.'); }
+  }
+
+  const selected = filtered[0] ?? null;
 
   return (
     <main className="page-shell">
       <div className="page-frame">
-        <div className="topbar panel-surface">
-          <div className="brand-lockup">
-            <div className="brand-mark">P</div>
-            <div>
-              <p className="eyebrow">Open source market toolkit by Lurk</p>
-              <div className="brand-line">
-                <strong>PolyCore / Watchlist</strong>
-                <span>Track the markets that matter and hand them to the calculator.</span>
-              </div>
-            </div>
-          </div>
-          <div className="topbar-actions">
-            <Link className="secondary-button" href="/">Overview</Link>
-            <Link className="secondary-button" href="/calculator">Calculator</Link>
-            <Link className="secondary-button" href="/monitor">Monitor</Link>
-          </div>
-        </div>
+        <div className="topbar panel-surface"><div className="brand-lockup"><div className="brand-mark">P</div><div><p className="eyebrow">Open-source binary market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Watchlist</strong><span>Track the markets that matter</span></div></div></div><div className="topbar-actions">{nav.map((link) => <Link key={link.href} className="secondary-button" href={link.href}>{link.label}</Link>)}</div></div>
 
         <header className="hero panel-surface">
-          <div className="hero-copy-wrap">
-            <p className="eyebrow">Watchlist module</p>
-            <h1>Load a list. Watch spread. Jump into math fast.</h1>
-            <p className="hero-copy">
-              Paste 5 to 20 Kalshi tickers, keep the board refreshing, and launch any row straight into the calculator with live bid / ask fields already filled.
-            </p>
-          </div>
-          <div className="hero-rail">
-            <div className="info-chip"><span>Source</span><strong>{isDemo ? 'Sample layout data' : 'Kalshi public market data'}</strong></div>
-            <div className="info-chip"><span>Refresh</span><strong>Every {refreshSeconds}s</strong></div>
-            <div className="info-chip"><span>Rows</span><strong>{sorted.length}</strong></div>
-            <div className="info-chip"><span>Last update</span><strong>{lastUpdated}</strong></div>
-          </div>
+          <div className="hero-copy-wrap"><p className="eyebrow">Watchlist module</p><h1>Saved lists, live rows, instant calculator handoff.</h1><p className="hero-copy">Use named watchlists, import/export JSON, and jump any market straight into the calculator with quote fields already filled.</p></div>
+          <div className="hero-rail"><div className="info-chip"><span>Mode</span><strong>{isDemo ? 'Sample board' : 'Live board'}</strong></div><div className="info-chip"><span>Refresh</span><strong>{refreshSeconds}s</strong></div><div className="info-chip"><span>Saved lists</span><strong>{saved.length}</strong></div><div className="info-chip"><span>Visible rows</span><strong>{filtered.length}</strong></div></div>
         </header>
-
-        <section className="controls-layout controls-layout-watchlist">
-          <section className="section-frame panel-surface">
-            <div className="section-head">
-              <div>
-                <p className="eyebrow">Load</p>
-                <h2>Watchlist configuration</h2>
-                <p className="section-copy">Use comma-separated Kalshi tickers. Leave it empty to preview the product in sample mode.</p>
-              </div>
-              <div className="section-actions">
-                <button className="secondary-button" type="button" onClick={() => setTickers(tickerText)}>Load watchlist</button>
-              </div>
-            </div>
-            <div className="control-grid control-grid-2">
-              <label className="field field-span-2">
-                <span>Tickers</span>
-                <input value={tickerText} onChange={(event) => setTickerText(event.target.value)} placeholder="KXHIGHNY-26APR10-T75, FED-26MAY-TGT525" />
-              </label>
-              <label className="field">
-                <span>Refresh (seconds)</span>
-                <input inputMode="numeric" value={String(refreshSeconds)} onChange={(event) => setRefreshSeconds(Math.max(5, Number(event.target.value) || 5))} />
-              </label>
-              <label className="field">
-                <span>Sort</span>
-                <select value={sortKey} onChange={(event) => setSortKey(event.target.value as SortKey)}>
-                  <option value="status-close">Open then close time</option>
-                  <option value="widest-spread">Widest spread</option>
-                  <option value="last-price">Highest last price</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Default fair YES (%)</span>
-                <input value={fairYes} onChange={(event) => setFairYes(event.target.value)} />
-              </label>
-              <label className="field">
-                <span>Default bankroll ($)</span>
-                <input value={bankroll} onChange={(event) => setBankroll(event.target.value)} />
-              </label>
-            </div>
-          </section>
-
-          <section className="section-frame panel-surface">
-            <div className="section-head">
-              <div>
-                <p className="eyebrow">Selection</p>
-                <h2>{selected?.ticker ?? 'No market loaded'}</h2>
-                <p className="section-copy">The first row in the current sort is pinned here so the watchlist feels like a tool, not a dead table.</p>
-              </div>
-              {selected ? <Link className="primary-button" href={buildCalculatorHref(selected, fairYes, bankroll)}>Open in calculator</Link> : null}
-            </div>
-            {selected ? (
-              <div className="metrics-grid">
-                <div className="metric-row"><span>Title</span><strong>{selected.title}</strong></div>
-                <div className="metric-row"><span>Status</span><strong>{selected.status}</strong></div>
-                <div className="metric-row"><span>YES bid / ask</span><strong>{formatCents(selected.yesBidCents)} / {formatCents(selected.yesAskCents)}</strong></div>
-                <div className="metric-row"><span>NO bid / ask</span><strong>{formatCents(selected.noBidCents)} / {formatCents(selected.noAskCents)}</strong></div>
-                <div className="metric-row"><span>Spread / midpoint</span><strong>{formatCents(selected.yesSpreadCents)} / {formatCents(selected.midpointCents, 1)}</strong></div>
-                <div className="metric-row"><span>Close / time left</span><strong>{selected.closeTimeLabel} / {selected.timeToCloseLabel}</strong></div>
-                <div className="metric-row"><span>24h volume</span><strong>{formatCompactNumber(selected.volume24h)}</strong></div>
-              </div>
-            ) : (
-              <div className="empty-state">Load a live ticker list or stay in sample mode to preview the layout.</div>
-            )}
-          </section>
-        </section>
 
         {error ? <div className="error-box"><p>{error}</p></div> : null}
 
+        <section className="controls-layout controls-layout-watchlist">
+          <section className="section-frame panel-surface">
+            <div className="section-head"><div><p className="eyebrow">Watchlist V2</p><h2>Saved list manager</h2><p className="section-copy">Edit a list, save it locally, and import/export JSON without adding backend baggage.</p></div><div className="section-actions"><button className="secondary-button" type="button" onClick={saveCurrentWatchlist}>Save list</button><button className="secondary-button" type="button" onClick={exportCurrent}>Copy JSON</button></div></div>
+            <div className="control-grid control-grid-2">
+              <label className="field"><span>List name</span><input value={name} onChange={(e) => setName(e.target.value)} /></label>
+              <label className="field"><span>Refresh (seconds)</span><input value={String(refreshSeconds)} onChange={(e) => setRefreshSeconds(Math.max(5, Number(e.target.value) || 5))} /></label>
+              <label className="field field-span-2"><span>Tickers</span><input value={tickersText} onChange={(e) => setTickersText(e.target.value)} /></label>
+              <label className="field"><span>Default fair YES (%)</span><input value={fairYes} onChange={(e) => setFairYes(e.target.value)} /></label>
+              <label className="field"><span>Default bankroll ($)</span><input value={bankroll} onChange={(e) => setBankroll(e.target.value)} /></label>
+              <label className="field field-span-2"><span>Import JSON</span><textarea className="textarea" value={importText} onChange={(e) => setImportText(e.target.value)} placeholder='{"name":"Macro","tickers":["..."]}' /></label>
+            </div>
+            <div className="hero-actions"><button className="secondary-button" type="button" onClick={importWatchlist}>Import list</button></div>
+            <div className="saved-watchlists">{saved.map((item) => <button key={item.id} type="button" className={`saved-watchlist ${item.id === activeId ? 'is-active' : ''}`} onClick={() => loadSaved(item)}><strong>{item.name}</strong><span>{item.tickers.length} tickers</span></button>)}</div>
+          </section>
+
+          <section className="section-frame panel-surface">
+            <div className="section-head"><div><p className="eyebrow">View</p><h2>Filter and sort</h2></div></div>
+            <div className="control-grid control-grid-2">
+              <label className="field"><span>Search</span><input value={search} onChange={(e) => setSearch(e.target.value)} /></label>
+              <label className="field"><span>Status</span><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | 'open' | 'paused')}><option value="all">All</option><option value="open">Open</option><option value="paused">Paused</option></select></label>
+              <label className="field"><span>Sort</span><select value={sort} onChange={(e) => setSort(e.target.value as 'close' | 'spread' | 'last')}><option value="close">Soonest close</option><option value="spread">Widest spread</option><option value="last">Highest last price</option></select></label>
+            </div>
+            {selected ? <div className="subpanel surface-soft"><div className="subpanel-header"><h3>Pinned market</h3></div><div className="metrics-grid"><div className="metric-row"><span>Ticker</span><strong>{selected.ticker}</strong></div><div className="metric-row"><span>YES bid / ask</span><strong>{formatCents(selected.yesBidCents)} / {formatCents(selected.yesAskCents)}</strong></div><div className="metric-row"><span>NO bid / ask</span><strong>{formatCents(selected.noBidCents)} / {formatCents(selected.noAskCents)}</strong></div><div className="metric-row"><span>Spread / close</span><strong>{formatCents(selected.yesSpreadCents)} / {selected.timeToCloseLabel}</strong></div></div><div className="hero-actions"><Link className="primary-button" href={calculatorHref(selected, fairYes, bankroll)}>Open in calculator</Link></div></div> : <div className="empty-state">No visible rows.</div>}
+          </section>
+        </section>
+
         <section className="section-frame panel-surface">
-          <div className="section-head">
-            <div>
-              <p className="eyebrow">Board</p>
-              <h2>Live watchlist</h2>
-              <p className="section-copy">Designed to be readable on desktop and still not suck on mobile.</p>
-            </div>
-            <div className="section-actions">
-              <span className="precision-label">{isLoading ? 'Refreshing…' : isDemo ? 'Sample data' : 'Live data'}</span>
-            </div>
-          </div>
+          <div className="section-head"><div><p className="eyebrow">Board</p><h2>Live watchlist</h2><p className="section-copy">{isDemo ? 'Showing sample rows.' : 'Live Kalshi rows loaded.'}</p></div></div>
           <div className="table-wrap market-table-wrap">
             <table className="data-table market-table">
-              <thead>
-                <tr>
-                  <th>Ticker</th>
-                  <th>Title</th>
-                  <th>Status</th>
-                  <th>YES bid</th>
-                  <th>YES ask</th>
-                  <th>NO bid</th>
-                  <th>NO ask</th>
-                  <th>Spread</th>
-                  <th>Last</th>
-                  <th>Close</th>
-                  <th>Time left</th>
-                  <th>Calc</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Ticker</th><th>Title</th><th>Status</th><th>YES bid</th><th>YES ask</th><th>NO bid</th><th>NO ask</th><th>Spread</th><th>Last</th><th>Close</th><th>Time left</th><th>Vol 24h</th><th>Calc</th></tr></thead>
               <tbody>
-                {sorted.map((market) => (
-                  <tr key={market.ticker}>
-                    <td className="ticker-cell">{market.ticker}</td>
-                    <td className="title-cell">
-                      <strong>{market.title}</strong>
-                      <span>{market.subtitle || 'Kalshi market'}</span>
-                    </td>
-                    <td><span className={`status-pill status-${statusTone(market.status)}`}>{market.status}</span></td>
-                    <td>{formatCents(market.yesBidCents)}</td>
-                    <td>{formatCents(market.yesAskCents)}</td>
-                    <td>{formatCents(market.noBidCents)}</td>
-                    <td>{formatCents(market.noAskCents)}</td>
-                    <td>{formatCents(market.yesSpreadCents)}</td>
-                    <td>{formatCents(market.lastPriceCents)}</td>
-                    <td>{market.closeTimeLabel}</td>
-                    <td>{market.timeToCloseLabel}</td>
-                    <td>
-                      <Link className="table-link" href={buildCalculatorHref(market, fairYes, bankroll)}>
-                        Price it
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map((market) => <tr key={market.ticker}><td className="ticker-cell">{market.ticker}</td><td className="title-cell"><strong>{market.title}</strong><span>Public market data</span></td><td><span className={`status-pill status-${statusTone(market.status)}`}>{market.status}</span></td><td>{formatCents(market.yesBidCents)}</td><td>{formatCents(market.yesAskCents)}</td><td>{formatCents(market.noBidCents)}</td><td>{formatCents(market.noAskCents)}</td><td>{formatCents(market.yesSpreadCents)}</td><td>{formatCents(market.lastPriceCents)}</td><td>{market.closeTimeLabel}</td><td>{market.timeToCloseLabel}</td><td>{formatCompactNumber(market.volume24h)}</td><td><Link className="table-link" href={calculatorHref(market, fairYes, bankroll)}>Price it</Link></td></tr>)}
               </tbody>
             </table>
           </div>
         </section>
-
-
-        <footer className="footer panel-surface">
-          <div className="footer-main">
-            <div>
-              <p className="eyebrow">PolyCore</p>
-              <h2>Open-source binary market toolkit by Lurk.</h2>
-              <p className="section-copy footer-copy">
-                Calculator, watchlist, monitor, and CLI in one polished repo.
-              </p>
-            </div>
-            <div className="footer-links">
-              <Link href="/">Overview</Link>
-              <Link href="/calculator">Calculator</Link>
-              <Link href="/watchlist">Watchlist</Link>
-              <Link href="/monitor">Monitor</Link>
-            </div>
-          </div>
-        </footer>
       </div>
     </main>
   );
 }
-
