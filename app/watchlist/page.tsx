@@ -28,7 +28,7 @@ function calculatorHref(market: Market, fairYes: string, bankroll: string) {
 }
 
 export default function WatchlistPage() {
-  const nav = [{ href: '/', label: 'Overview' }, { href: '/calculator', label: 'Calculator' }, { href: '/watchlist', label: 'Watchlist' }, { href: '/monitor', label: 'Monitor' }];
+  const nav = [{ href: '/', label: 'Overview' }, { href: '/calculator', label: 'Calculator' }, { href: '/watchlist', label: 'Watchlist' }, { href: '/monitor', label: 'Monitor' }, { href: 'https://github.com/Lurk-AI-INC/polycore', label: 'GitHub' }];
   const [saved, setSaved] = useState<SavedWatchlist[]>(defaultLists());
   const [activeId, setActiveId] = useState('macro');
   const [name, setName] = useState('Macro sample');

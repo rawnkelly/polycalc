@@ -113,6 +113,7 @@ export default function RulesPage() {
     { href: '/calculator', label: 'Calculator' },
     { href: '/watchlist', label: 'Watchlist' },
     { href: '/monitor', label: 'Monitor' },
+    { href: 'https://github.com/Lurk-AI-INC/polycore', label: 'GitHub' }
   ];
 
   const [ruleDraft, setRuleDraft] = useState<Rule>({ ...DEFAULT_RULE });

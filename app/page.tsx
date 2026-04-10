@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 function Shell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
-  const nav = [{ href: '/', label: 'Overview' }, { href: '/calculator', label: 'Calculator' }, { href: '/watchlist', label: 'Watchlist' }, { href: '/monitor', label: 'Monitor' }, { href: '/rules', label: 'Rules' }];
+  const nav = [{ href: '/', label: 'Overview' }, { href: '/calculator', label: 'Calculator' }, { href: '/watchlist', label: 'Watchlist' }, { href: '/monitor', label: 'Monitor' }, { href: '/rules', label: 'Rules' }, { href: 'https://github.com/Lurk-AI-INC/polycore', label: 'GitHub' }];
   return (
     <div className="page-frame">
       <div className="topbar panel-surface">
@@ -46,7 +46,7 @@ export default function HomePage() {
             <h1>Four tools, free.</h1>
             <p className="hero-copy">PolyCore merges advanced math, locally saved watchlists, a live monitor, and a CLI, for free.</p>
             <div className="hero-actions">
-              <Link className="primary-button" href="/calculator">Open calculator</Link>
+              <Link className="secondary-button" href="/calculator">Open calculator</Link>
               <Link className="secondary-button" href="/watchlist">Open watchlist</Link>
               <Link className="secondary-button" href="/monitor">Open monitor</Link>
               <Link className="secondary-button" href="/rules">Open rules</Link>

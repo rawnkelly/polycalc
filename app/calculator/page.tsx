@@ -40,7 +40,7 @@ function num(value: string): number { const parsed = Number(value); return Numbe
 function MetricRow({ label, value }: { label: string; value: string }) { return <div className="metric-row"><span>{label}</span><strong>{value}</strong></div>; }
 
 export default function CalculatorPage() {
-  const nav = [{ href: '/', label: 'Overview' }, { href: '/calculator', label: 'Calculator' }, { href: '/watchlist', label: 'Watchlist' }, { href: '/monitor', label: 'Monitor' }];
+  const nav = [{ href: '/', label: 'Overview' }, { href: '/calculator', label: 'Calculator' }, { href: '/watchlist', label: 'Watchlist' }, { href: '/monitor', label: 'Monitor' }, { href: 'https://github.com/Lurk-AI-INC/polycore', label: 'GitHub' }];
   const [form, setForm] = useState<FormState>(DEFAULTS);
   const [copied, setCopied] = useState(false);
 

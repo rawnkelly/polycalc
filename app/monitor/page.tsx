@@ -25,7 +25,7 @@ function calculatorHref(market: Market) {
 }
 
 export default function MonitorPage() {
-  const nav = [{ href: '/', label: 'Overview' }, { href: '/calculator', label: 'Calculator' }, { href: '/watchlist', label: 'Watchlist' }, { href: '/monitor', label: 'Monitor' }];
+  const nav = [{ href: '/', label: 'Overview' }, { href: '/calculator', label: 'Calculator' }, { href: '/watchlist', label: 'Watchlist' }, { href: '/monitor', label: 'Monitor' }, { href: 'https://github.com/Lurk-AI-INC/polycore', label: 'GitHub' }];
   const [markets, setMarkets] = useState<Market[]>(SAMPLE_MARKETS);
   const [selectedTicker, setSelectedTicker] = useState(SAMPLE_MARKETS[0].ticker);
   const [tickersText, setTickersText] = useState(SAMPLE_MARKETS.map((market) => market.ticker).join(', '));
