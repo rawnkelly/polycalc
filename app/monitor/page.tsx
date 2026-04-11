@@ -77,7 +77,7 @@ export default function MonitorPage() {
   return (
     <main className="page-shell page-shell-monitor">
       <div className="page-frame">
-        <div className="topbar panel-surface"><div className="brand-lockup"><div className="brand-mark">PC</div><div><p className="eyebrow">Open-source market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Monitor</strong><span>Live board mode with watchlist DNA</span></div></div></div><div className="topbar-actions">{nav.map((link) => <Link key={link.href} className="secondary-button" href={link.href}>{link.label}</Link>)}</div></div>
+        <div className="topbar panel-surface"><div className="brand-lockup"><div className="brand-mark">PC</div><div><p className="eyebrow">Open-source, local-first market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Monitor</strong><span>Live board for tracked markets</span></div></div></div><div className="topbar-actions">{nav.map((link) => <Link key={link.href} className="secondary-button" href={link.href}>{link.label}</Link>)}</div></div>
 
         <section className="monitor-hud panel-surface">
           <div className="monitor-hud-main">
@@ -129,7 +129,7 @@ export default function MonitorPage() {
           </section>
         </section>
 
-        <footer className="footer panel-surface"><div className="footer-main"><div><p className="eyebrow">PolyCore</p><h2>Monitor module inside the PolyCore toolkit by Lurk.</h2><p className="section-copy footer-copy">Bloomberg-lite live board, selected-market detail, feed log, and calculator launch in one surface.</p></div></div></footer>
+        <footer className="footer panel-surface"><div className="footer-main"><div><p className="eyebrow">PolyCore</p><h2>Monitor module inside PolyCore, the open utility layer by Lurk.</h2><p className="section-copy footer-copy">Live board, selected-market detail, feed log, and calculator launch for markets you already track.</p></div></div></footer>
       </div>
     </main>
   );

@@ -85,7 +85,7 @@ export default function CalculatorPage() {
     <main className="page-shell">
       <div className="page-frame">
         <div className="topbar panel-surface">
-          <div className="brand-lockup"><div className="brand-mark">PC</div><div><p className="eyebrow">Open-source market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Calculator</strong><span>Analyze a live binary contract</span></div></div></div>
+          <div className="brand-lockup"><div className="brand-mark">PC</div><div><p className="eyebrow">Open-source, local-first market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Calculator</strong><span>Analyze a live binary contract</span></div></div></div>
           <div className="topbar-actions">{nav.map((link) => <Link key={link.href} className="secondary-button" href={link.href}>{link.label}</Link>)}</div>
         </div>
 
@@ -168,7 +168,7 @@ export default function CalculatorPage() {
           ))}
         </section>
 
-        <footer className="footer panel-surface"><div className="footer-main"><div><p className="eyebrow">PolyCore</p><h2>Calculator module inside the PolyCore toolkit by Lurk.</h2><p className="section-copy footer-copy">Live contract math, shareable state, and venue-aware fee presets.</p></div></div></footer>
+        <footer className="footer panel-surface"><div className="footer-main"><div><p className="eyebrow">PolyCore</p><h2>Calculator module inside PolyCore, the open utility layer by Lurk.</h2><p className="section-copy footer-copy">Live contract math, shareable state, and venue-aware fee presets.</p></div></div></footer>
       </div>
     </main>
   );

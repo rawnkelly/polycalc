@@ -1,15 +1,42 @@
 {
   "name": "polycore",
-  "version": "0.2.0",
-  "private": true,
+  "version": "0.3.0",
+  "description": "Open-source, local-first utility layer for binary market workflows.",
+  "private": false,
+  "license": "MIT",
+  "bin": {
+    "polycore": "./cli/polycore.mjs"
+  },
+  "files": [
+    "app",
+    "cli",
+    "docs",
+    "examples",
+    "lib",
+    "watchlists",
+    "LICENSE",
+    "README.md",
+    "next-env.d.ts",
+    "package.json",
+    "tsconfig.json"
+  ],
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
+    "cli": "node ./cli/polycore.mjs",
     "cli:watch": "node ./cli/polycore.mjs watch",
     "cli:monitor": "node ./cli/polycore.mjs monitor",
     "cli:rules": "node ./cli/polycore.mjs rules"
   },
+  "keywords": [
+    "binary-markets",
+    "kalshi",
+    "cli",
+    "nextjs",
+    "watchlist",
+    "calculator"
+  ],
   "dependencies": {
     "next": "16.2.3",
     "react": "19.2.4",

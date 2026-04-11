@@ -228,10 +228,10 @@ export default function RulesPage() {
   return (
     <main className="page-shell">
       <div className="page-frame">
-        <div className="topbar panel-surface"><div className="brand-lockup"><div className="brand-mark">PC</div><div><p className="eyebrow">Open-source market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Rules</strong><span>Alert when a market is finally worth touching</span></div></div></div><div className="topbar-actions">{nav.map((link) => <Link key={link.href} className="secondary-button" href={link.href}>{link.label}</Link>)}</div></div>
+        <div className="topbar panel-surface"><div className="brand-lockup"><div className="brand-mark">PC</div><div><p className="eyebrow">Open-source, local-first market toolkit by Lurk</p><div className="brand-line"><strong>PolyCore / Rules</strong><span>Alert when your tracked market hits your line</span></div></div></div><div className="topbar-actions">{nav.map((link) => <Link key={link.href} className="secondary-button" href={link.href}>{link.label}</Link>)}</div></div>
 
         <header className="hero panel-surface">
-          <div className="hero-copy-wrap"><p className="eyebrow">Rules module</p><h1>Tell me when it actually matters.</h1><p className="hero-copy">Saved rules that watch live markets for thresholds, spread changes, status changes, and positive-EV conditions based on your fair value.</p></div>
+          <div className="hero-copy-wrap"><p className="eyebrow">Rules module</p><h1>Tell me when my rule hits.</h1><p className="hero-copy">Saved rules that watch live markets for thresholds, spread changes, status changes, and positive-EV conditions based on your fair value.</p></div>
           <div className="hero-rail"><div className="info-chip"><span>Active rules</span><strong>{activeRules.length}</strong></div><div className="info-chip"><span>Triggered events</span><strong>{events.length}</strong></div><div className="info-chip"><span>Tracked tickers</span><strong>{activeTickers.length || markets.length}</strong></div><div className="info-chip"><span>Feed</span><strong>{isDemo ? 'Sample mode' : `Every ${refreshSeconds}s`}</strong></div></div>
         </header>
 

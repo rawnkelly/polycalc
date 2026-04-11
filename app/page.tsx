@@ -1,14 +1,21 @@
 import Link from 'next/link';
 
 function Shell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
-  const nav = [{ href: '/calculator', label: 'Calculator' }, { href: '/watchlist', label: 'Watchlist' }, { href: '/monitor', label: 'Monitor' }, { href: '/rules', label: 'Rules' }, { href: 'https://github.com/Lurk-AI-INC/polycore', label: 'GitHub' }];
+  const nav = [
+    { href: '/calculator', label: 'Calculator' },
+    { href: '/watchlist', label: 'Watchlist' },
+    { href: '/monitor', label: 'Monitor' },
+    { href: '/rules', label: 'Rules' },
+    { href: 'https://github.com/Lurk-AI-INC/polycore', label: 'GitHub' },
+  ];
+
   return (
     <div className="page-frame">
       <div className="topbar panel-surface">
         <div className="brand-lockup">
           <div className="brand-mark">PC</div>
           <div>
-            <p className="eyebrow">Open-source market toolkit by Lurk</p>
+            <p className="eyebrow">Open-source, local-first market toolkit by Lurk</p>
             <div className="brand-line"><strong>{title}</strong><span>{subtitle}</span></div>
           </div>
         </div>
@@ -19,7 +26,11 @@ function Shell({ title, subtitle, children }: { title: string; subtitle: string;
       {children}
       <footer className="footer panel-surface">
         <div className="footer-main">
-          <div><p className="eyebrow">PolyCore</p><h2>Open-source market toolkit by Lurk.</h2><p className="section-copy footer-copy">Calculator, watchlist, monitor, rules, and CLI.</p></div>
+          <div>
+            <p className="eyebrow">PolyCore</p>
+            <h2>Open utility layer. No discovery engine. No ranked opportunities.</h2>
+            <p className="section-copy footer-copy">Calculator, watchlists, monitor, rules, and CLI for markets you already care about.</p>
+          </div>
           <div className="footer-links">
             {nav.map((link) => <Link key={link.href} href={link.href}>{link.label}</Link>)}
           </div>
@@ -31,20 +42,20 @@ function Shell({ title, subtitle, children }: { title: string; subtitle: string;
 
 const modules = [
   { href: '/calculator', eyebrow: 'Analyze', title: 'Calculator', copy: 'YES / NO pricing with target entry, reverse pricing, fee presets, slippage, and sizing.' },
-  { href: '/watchlist', eyebrow: 'Track', title: 'Watchlist', copy: 'Saved watchlists, live Kalshi data, filter/sort, and one-click launch into the calculator.' },
-  { href: '/monitor', eyebrow: 'Operate', title: 'Monitor', copy: 'A live board with selection detail, pulse metrics, and event logs.' },
-  { href: '/rules', eyebrow: 'Anchor', title: 'Rules', copy: 'Saved alert rules that watch prices, spread, status, time-to-close, and positive-EV.' },
+  { href: '/watchlist', eyebrow: 'Track', title: 'Watchlist', copy: 'Saved local watchlists, live Kalshi data, filter/sort, and one-click launch into the calculator.' },
+  { href: '/monitor', eyebrow: 'Operate', title: 'Monitor', copy: 'A live board for tracked markets with selection detail, pulse metrics, and event logs.' },
+  { href: '/rules', eyebrow: 'Anchor', title: 'Rules', copy: 'Saved alert rules that watch price, spread, status, time-to-close, and positive-EV conditions.' },
 ];
 
 export default function HomePage() {
   return (
     <main className="page-shell">
-      <Shell title="PolyCore (v0.1)" subtitle="Analyze. Track. Monitor. Rule.">
+      <Shell title="PolyCore (v0.3)" subtitle="Local-first utilities for binary markets.">
         <header className="hero panel-surface">
           <div className="hero-copy-wrap">
             <p className="eyebrow">Overview</p>
-            <h1>Four tools, free.</h1>
-            <p className="hero-copy">PolyCore merges advanced math, locally saved watchlists, a live monitor, and a CLI, for free.</p>
+            <h1>Utility layer, not intelligence layer.</h1>
+            <p className="hero-copy">PolyCore gives you free local tooling for pricing, tracking, monitoring, and rule-based workflows without turning into a discovery product.</p>
             <div className="hero-actions">
               <Link className="secondary-button" href="/calculator">Open calculator</Link>
               <Link className="secondary-button" href="/watchlist">Open watchlist</Link>
@@ -54,8 +65,8 @@ export default function HomePage() {
           </div>
           <div className="hero-rail">
             <div className="info-chip"><span>Calculator</span><strong>Edge, EV, Kelly, target entry, and reverse pricing.</strong></div>
-            <div className="info-chip"><span>Watchlist V2</span><strong>Saved local watchlists, import/export, filters, and calc handoff.</strong></div>
-            <div className="info-chip"><span>Monitor V2</span><strong>Selection detail, pulse metrics, event logs, density, and live posture.</strong></div>
+            <div className="info-chip"><span>Watchlist</span><strong>Saved local watchlists, import/export, filters, and calc handoff.</strong></div>
+            <div className="info-chip"><span>Monitor</span><strong>Live board for markets you picked, not opportunities we ranked.</strong></div>
             <div className="info-chip"><span>Rules</span><strong>Saved conditions for entry, spread, status, countdown, and EV.</strong></div>
           </div>
         </header>
