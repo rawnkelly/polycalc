@@ -1,17 +1,43 @@
 #!/usr/bin/env node
+
 import fs from 'node:fs';
 import path from 'node:path';
 
 const API_BASE = 'https://api.elections.kalshi.com/trade-api/v2';
+const REQUEST_TIMEOUT_MS = 8000;
+
+const SAMPLE_MARKETS = [
+  makeSample('DEMO-GDP-2026', 'Will US GDP beat consensus this quarter?', 'open', 47, 49, 51, 53, 48, 36, 18200),
+  makeSample('DEMO-CPI-2026', 'Will CPI print above 0.3% this month?', 'open', 58, 61, 39, 42, 60, 8, 9200),
+  makeSample('DEMO-RATE-2026', 'Will the Fed cut at the next meeting?', 'paused', 24, 27, 73, 76, 25, 288, 5400),
+];
+
+function makeSample(ticker, title, status, yesBid, yesAsk, noBid, noAsk, last, hours, volume24h) {
+  const closeTime = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+  return {
+    ticker,
+    title,
+    status,
+    yesBid,
+    yesAsk,
+    noBid,
+    noAsk,
+    spread: yesAsk - yesBid,
+    last,
+    closeTime,
+    countdown: closeCountdown(closeTime),
+    volume24h,
+  };
+}
 
 function usage() {
-  console.log(`PolyCore CLI
+  process.stdout.write(`
+PolyCore CLI
 
-Commands:
-  polycore watch --tickers T1,T2 [--refresh 10] [--once] [--json]
-  polycore watch --file ./watchlists/default.json [--once] [--json]
-  polycore monitor --tickers T1,T2 [--refresh 8] [--json]
-  polycore rules --file ./watchlists/rules.json [--refresh 10] [--once] [--json]
+Usage:
+  polycore watch --file ./watchlists/default.json [--refresh 10] [--once] [--json] [--demo]
+  polycore monitor --tickers T1,T2 [--refresh 8] [--json] [--sort close] [--status open]
+  polycore rules --file ./watchlists/rules.json [--refresh 10] [--once] [--json] [--demo]
 
 Flags:
   --tickers   Comma-separated tickers
@@ -19,6 +45,9 @@ Flags:
   --refresh   Refresh interval in seconds (minimum 5)
   --once      Run one cycle and exit
   --json      Emit JSON output instead of a terminal table
+  --demo      Force sample fixture mode
+  --sort      close | spread | last | volume | ticker
+  --status    all | open | paused | closed | settled | unknown
   --help      Show this help text
 `);
 }
@@ -31,6 +60,9 @@ function parseArgs(argv) {
     refresh: 10,
     once: false,
     json: false,
+    demo: false,
+    sort: 'close',
+    status: 'all',
   };
 
   for (let i = 3; i < argv.length; i += 1) {
@@ -46,10 +78,18 @@ function parseArgs(argv) {
     } else if (current === '--refresh') {
       args.refresh = Math.max(5, Number(next) || 10);
       i += 1;
+    } else if (current === '--sort') {
+      args.sort = next ?? 'close';
+      i += 1;
+    } else if (current === '--status') {
+      args.status = next ?? 'all';
+      i += 1;
     } else if (current === '--once') {
       args.once = true;
     } else if (current === '--json') {
       args.json = true;
+    } else if (current === '--demo') {
+      args.demo = true;
     } else if (current === '--help' || current === '-h') {
       usage();
       process.exit(0);
@@ -64,9 +104,16 @@ function readJsonFile(relativeFilePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
+function parseTickers(value) {
+  return [...new Set(String(value)
+    .split(/[\n,]/)
+    .map((ticker) => ticker.trim().toUpperCase())
+    .filter(Boolean))];
+}
+
 function readTickers(args) {
   if (args.tickers) {
-    return args.tickers.split(',').map((ticker) => ticker.trim()).filter(Boolean);
+    return parseTickers(args.tickers);
   }
 
   if (!args.file) {
@@ -76,11 +123,11 @@ function readTickers(args) {
   const parsed = readJsonFile(args.file);
 
   if (Array.isArray(parsed)) {
-    return parsed.map((ticker) => String(ticker).trim()).filter(Boolean);
+    return parseTickers(parsed.join(','));
   }
 
   if (parsed && Array.isArray(parsed.tickers)) {
-    return parsed.tickers.map((ticker) => String(ticker).trim()).filter(Boolean);
+    return parseTickers(parsed.tickers.join(','));
   }
 
   throw new Error('Watchlist file must be a JSON array or an object with a tickers array.');
@@ -102,7 +149,7 @@ function readRules(args) {
 function cents(value) {
   if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed * 100 : null;
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) : null;
 }
 
 function closeCountdown(value) {
@@ -133,45 +180,101 @@ function fmtTitle(value) {
   return String(value ?? '--').length > 34 ? `${String(value).slice(0, 31)}...` : String(value ?? '--');
 }
 
-async function fetchMarkets(tickers) {
-  const response = await fetch(`${API_BASE}/markets?tickers=${encodeURIComponent(tickers.join(','))}`, {
-    headers: { Accept: 'application/json' },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Kalshi request failed with ${response.status}`);
-  }
-
-  const payload = await response.json();
-
-  return Array.isArray(payload.markets)
-    ? payload.markets.map((market) => ({
-        ticker: market.ticker,
-        title: market.title,
-        status: market.status,
-        yesBid: cents(market.yes_bid_dollars),
-        yesAsk: cents(market.yes_ask_dollars),
-        noBid: cents(market.no_bid_dollars),
-        noAsk: cents(market.no_ask_dollars),
-        spread:
-          cents(market.yes_ask_dollars) !== null && cents(market.yes_bid_dollars) !== null
-            ? cents(market.yes_ask_dollars) - cents(market.yes_bid_dollars)
-            : null,
-        last: cents(market.last_price_dollars),
-        closeTime: market.close_time,
-        countdown: closeCountdown(market.close_time),
-      }))
-    : [];
+function feeForPriceCents(price, feeMode, customFeeCents) {
+  const p = price / 100;
+  if (feeMode === 'no-fee') return 0;
+  if (feeMode === 'custom') return Number(customFeeCents) || 0;
+  if (feeMode === 'polymarket') return 100 * (0.04 * p * (1 - p));
+  return Math.ceil(100 * (0.07 * p * (1 - p)));
 }
 
-function render(markets, refresh, mode) {
+async function fetchMarkets(tickers, { demo = false } = {}) {
+  if (demo) {
+    return { markets: SAMPLE_MARKETS.filter((market) => tickers.length === 0 || tickers.includes(market.ticker)), source: 'demo', warning: '' };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${API_BASE}/markets?tickers=${encodeURIComponent(tickers.join(','))}`, {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Kalshi request failed with ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const markets = Array.isArray(payload.markets)
+      ? payload.markets.map((market) => ({
+          ticker: market.ticker,
+          title: market.title,
+          status: market.status,
+          yesBid: cents(market.yes_bid_dollars),
+          yesAsk: cents(market.yes_ask_dollars),
+          noBid: cents(market.no_bid_dollars),
+          noAsk: cents(market.no_ask_dollars),
+          spread:
+            cents(market.yes_ask_dollars) !== null && cents(market.yes_bid_dollars) !== null
+              ? cents(market.yes_ask_dollars) - cents(market.yes_bid_dollars)
+              : null,
+          last: cents(market.last_price_dollars),
+          closeTime: market.close_time,
+          countdown: closeCountdown(market.close_time),
+          volume24h: market.volume_24h_fp ? Number(market.volume_24h_fp) : null,
+        }))
+      : [];
+
+    return { markets, source: 'live', warning: '' };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return {
+      markets: SAMPLE_MARKETS.filter((market) => tickers.length === 0 || tickers.includes(market.ticker)),
+      source: 'demo',
+      warning: `Live request failed. Falling back to demo rows: ${message}`,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function filterAndSortMarkets(markets, args) {
+  let next = args.status === 'all' ? markets : markets.filter((market) => market.status === args.status);
+
+  next = [...next].sort((left, right) => {
+    if (args.sort === 'ticker') return left.ticker.localeCompare(right.ticker);
+    if (args.sort === 'spread') return (right.spread ?? -1) - (left.spread ?? -1);
+    if (args.sort === 'last') return (right.last ?? -1) - (left.last ?? -1);
+    if (args.sort === 'volume') return (right.volume24h ?? -1) - (left.volume24h ?? -1);
+    return new Date(left.closeTime ?? 0).getTime() - new Date(right.closeTime ?? 0).getTime();
+  });
+
+  return next;
+}
+
+function render(markets, refresh, mode, args, source, warning) {
   console.clear();
-  console.log(`PolyCore ${mode} | refresh ${refresh}s | updated ${new Date().toLocaleTimeString()} | rows ${markets.length}`);
+  console.log(`PolyCore ${mode} | refresh ${refresh}s | source ${source} | status ${args.status} | sort ${args.sort} | updated ${new Date().toLocaleTimeString()} | rows ${markets.length}`);
+  if (warning) console.log(`Warning: ${warning}`);
   console.log('');
-  console.log([pad('TICKER', 22), pad('TITLE', 34), pad('STATUS', 8), pad('YB', 6), pad('YA', 6), pad('NB', 6), pad('NA', 6), pad('SPRD', 6), pad('LAST', 6), pad('LEFT', 10)].join('  '));
-  console.log('-'.repeat(126));
+  console.log([pad('TICKER', 22), pad('TITLE', 34), pad('STATUS', 8), pad('YB', 6), pad('YA', 6), pad('NB', 6), pad('NA', 6), pad('SPRD', 6), pad('LAST', 6), pad('VOL', 8), pad('LEFT', 10)].join('  '));
+  console.log('-'.repeat(140));
   for (const market of markets) {
-    console.log([pad(market.ticker, 22), pad(fmtTitle(market.title), 34), pad(market.status ?? '--', 8), pad(fmtCents(market.yesBid), 6), pad(fmtCents(market.yesAsk), 6), pad(fmtCents(market.noBid), 6), pad(fmtCents(market.noAsk), 6), pad(fmtCents(market.spread), 6), pad(fmtCents(market.last), 6), pad(market.countdown, 10)].join('  '));
+    console.log([
+      pad(market.ticker, 22),
+      pad(fmtTitle(market.title), 34),
+      pad(market.status ?? '--', 8),
+      pad(fmtCents(market.yesBid), 6),
+      pad(fmtCents(market.yesAsk), 6),
+      pad(fmtCents(market.noBid), 6),
+      pad(fmtCents(market.noAsk), 6),
+      pad(fmtCents(market.spread), 6),
+      pad(fmtCents(market.last), 6),
+      pad(market.volume24h ?? '--', 8),
+      pad(market.countdown, 10),
+    ].join('  '));
   }
 }
 
@@ -187,14 +290,27 @@ function evaluateRule(rule, market, previousStatus) {
     return diffMinutes >= 0 && diffMinutes <= threshold ? `Time to close ${diffMinutes}m <= ${threshold}m` : null;
   }
   if (rule.type === 'status-change') return previousStatus !== null && previousStatus !== market.status ? `Status changed ${previousStatus} -> ${market.status}` : null;
-  if (rule.type === 'yes-positive-ev') return market.yesAsk !== null && (Number(rule.fairYes || 50) - market.yesAsk / 100) > 0 ? `YES may be +EV at ${fmtCents(market.yesAsk)}` : null;
-  if (rule.type === 'no-positive-ev') return market.noAsk !== null && ((100 - Number(rule.fairYes || 50)) / 100 - market.noAsk / 100) > 0 ? `NO may be +EV at ${fmtCents(market.noAsk)}` : null;
+  if (rule.type === 'yes-positive-ev') {
+    if (market.yesAsk === null) return null;
+    const fee = feeForPriceCents(market.yesAsk, rule.feeMode || 'kalshi', rule.customFeeCents || 0);
+    const fair = Number(rule.fairYes || 50);
+    const netEv = fair - market.yesAsk / 100 - fee / 100;
+    return netEv > 0 ? `YES is positive EV at ${fmtCents(market.yesAsk)} (+${netEv.toFixed(2)}¢)` : null;
+  }
+  if (rule.type === 'no-positive-ev') {
+    if (market.noAsk === null) return null;
+    const fee = feeForPriceCents(market.noAsk, rule.feeMode || 'kalshi', rule.customFeeCents || 0);
+    const fair = 100 - Number(rule.fairYes || 50);
+    const netEv = fair - market.noAsk / 100 - fee / 100;
+    return netEv > 0 ? `NO is positive EV at ${fmtCents(market.noAsk)} (+${netEv.toFixed(2)}¢)` : null;
+  }
   return null;
 }
 
-function renderRules(events, refresh) {
+function renderRules(events, refresh, source, warning) {
   console.clear();
-  console.log(`PolyCore rules | refresh ${refresh}s | updated ${new Date().toLocaleTimeString()} | triggered ${events.length}`);
+  console.log(`PolyCore rules | refresh ${refresh}s | source ${source} | updated ${new Date().toLocaleTimeString()} | triggered ${events.length}`);
+  if (warning) console.log(`Warning: ${warning}`);
   console.log('');
   console.log([pad('TIME', 12), pad('RULE', 28), pad('TICKER', 22), 'MESSAGE'].join('  '));
   console.log('-'.repeat(120));
@@ -221,10 +337,11 @@ async function run() {
     let armed = {};
 
     const loop = async () => {
-      const markets = await fetchMarkets(tickers);
+      const { markets, source, warning } = await fetchMarkets(tickers, { demo: args.demo });
+      const filteredMarkets = filterAndSortMarkets(markets, args);
       const events = [];
 
-      for (const market of markets) {
+      for (const market of filteredMarkets) {
         const matchingRules = rules.filter((rule) => rule.isEnabled !== false && rule.ticker === market.ticker);
         const previousStatus = previousStatuses[market.ticker] ?? null;
 
@@ -256,12 +373,14 @@ async function run() {
           updatedAt: new Date().toISOString(),
           trackedTickers: tickers,
           triggeredCount: events.length,
+          source,
+          warning,
           events,
         });
         return;
       }
 
-      renderRules(events, args.refresh);
+      renderRules(events, args.refresh, source, warning);
     };
 
     if (args.once || args.json) {
@@ -277,7 +396,8 @@ async function run() {
   const tickers = readTickers(args);
 
   const loop = async () => {
-    const markets = await fetchMarkets(tickers);
+    const { markets, source, warning } = await fetchMarkets(tickers, { demo: args.demo });
+    const filteredMarkets = filterAndSortMarkets(markets, args);
 
     if (args.json) {
       printJson({
@@ -285,13 +405,15 @@ async function run() {
         refreshSeconds: args.refresh,
         updatedAt: new Date().toISOString(),
         tickers,
-        rowCount: markets.length,
-        markets,
+        rowCount: filteredMarkets.length,
+        source,
+        warning,
+        markets: filteredMarkets,
       });
       return;
     }
 
-    render(markets, args.refresh, args.command);
+    render(filteredMarkets, args.refresh, args.command, args, source, warning);
   };
 
   if (args.once || args.json) {
