@@ -1,6 +1,6 @@
 {
   "name": "polycore",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "description": "Open-source, local-first utility layer for binary market workflows.",
   "private": false,
   "license": "MIT",
