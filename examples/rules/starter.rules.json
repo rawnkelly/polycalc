@@ -1,0 +1,28 @@
+{
+  "rules": [
+    {
+      "id": "yes-ev-demo",
+      "name": "YES becomes positive EV",
+      "ticker": "DEMO-GDP-2026",
+      "type": "yes-positive-ev",
+      "threshold": "0",
+      "fairYes": "54",
+      "bankroll": "1000",
+      "feeMode": "kalshi",
+      "customFeeCents": "1",
+      "isEnabled": true
+    },
+    {
+      "id": "spread-tight-demo",
+      "name": "Spread tightens",
+      "ticker": "DEMO-CPI-2026",
+      "type": "spread-lte",
+      "threshold": "2",
+      "fairYes": "50",
+      "bankroll": "1000",
+      "feeMode": "kalshi",
+      "customFeeCents": "1",
+      "isEnabled": true
+    }
+  ]
+}
